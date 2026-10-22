@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bus Timing Info</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--text:#1d2433;--muted:#5d6678;--primary:#1a5fd4;--accent:#0f9d58;--line:#dde2ee;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141d;--card:#1a2030;--text:#e8ecf5;--muted:#9aa4b8;--primary:#6ea0ff;--accent:#4cd18a;--line:#2b3348;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10141d;--card:#1a2030;--text:#e8ecf5;--muted:#9aa4b8;--primary:#6ea0ff;--accent:#4cd18a;--line:#2b3348;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+header{background:var(--primary);color:#fff;padding:14px 16px}
+header h1{margin:0;font-size:1.3rem}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+nav button{background:rgba(255,255,255,.18);color:#fff;border:0;padding:8px 14px;border-radius:20px;cursor:pointer;font-size:.9rem}
+nav button.on{background:#fff;color:#1a5fd4;font-weight:600}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>*{flex:1 1 140px}
+.row>.swap{flex:0 0 auto}
+label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+select,input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font-size:1rem}
+.btn{background:var(--primary);color:#fff;border:0;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:1rem}
+.btn.sec{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+.btn.del{background:#d93025;padding:6px 10px;font-size:.85rem}
+.bus{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.bus h3{margin:0;font-size:1.05rem}
+.muted{color:var(--muted);font-size:.9rem}
+.time{font-size:1.15rem;font-weight:600}
+.badge{background:var(--accent);color:#fff;font-size:.75rem;padding:2px 8px;border-radius:10px;margin-left:6px}
+.badge.tp{background:#8a4fd4}
+.badge.tp.g{background:#1a5fd4}
+.stops{list-style:none;padding:0;margin:10px 0 0;border-left:3px solid var(--primary)}
+.stops li{padding:6px 0 6px 14px;position:relative;display:flex;justify-content:space-between;gap:10px}
+.stops li::before{content:"";position:absolute;left:-8px;top:14px;width:11px;height:11px;border-radius:50%;background:var(--primary)}
+.hide{display:none}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.msg{color:#d93025;font-size:.9rem;margin-top:8px}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:16px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🚌 Bus Timing Info</h1>
+  <nav id="nav">
+    <button data-v="home" class="on">Home</button>
+    <button data-v="routes">All Routes</button>
+    <button data-v="admin">Admin</button>
+  </nav>
+</header>
+
+<main>
+  <section id="home">
+    <div class="card">
+      <div class="row">
+        <div><label for="from">From</label><select id="from"></select></div>
+        <button class="btn sec swap" id="swapBtn" title="Swap">⇄</button>
+        <div><label for="to">To</label><select id="to"></select></div>
+        <div><label for="op">Bus</label><select id="op"></select></div>
+      </div>
+      <p style="margin:12px 0 0"><button class="btn" id="searchBtn">Search Bus</button></p>
+    </div>
+    <div id="results"></div>
+  </section>
+
+  <section id="routes" class="hide"><div id="routeList"></div></section>
+
+  <section id="details" class="hide">
+    <p><button class="btn sec" id="backBtn">← Back</button></p>
+    <div class="card" id="detailBox"></div>
+  </section>
+
+  <section id="admin" class="hide">
+    <div class="card" id="loginBox">
+      <h3 style="margin-top:0">Admin Login</h3>
+      <div class="row">
+        <div><label for="user">Username</label><input id="user" autocomplete="off"></div>
+        <div><label for="pass">Password</label><input id="pass" type="password"></div>
+      </div>
+      <p style="margin:12px 0 0"><button class="btn" id="loginBtn">Login</button></p>
+      <div class="msg" id="loginMsg"></div>
+      <p class="muted">Demo login: admin / 1234</p>
+    </div>
+
+    <div id="panel" class="hide">
+      <div class="card">
+        <h3 style="margin-top:0">Add a Bus</h3>
+        <div class="row">
+          <div><label for="aName">Bus name / number</label><input id="aName" placeholder="PRTC 500"></div>
+          <div><label for="aDep">Departure time</label><input id="aDep" type="time"></div>
+        </div>
+        <div style="margin-top:10px"><label for="aStops">Stops in order (comma separated)</label><input id="aStops" placeholder="Phagwara, Banga, Mahilpur"></div>
+        <div class="row" style="margin-top:10px">
+          <div><label for="aTotal">Total travel time (minutes)</label><input id="aTotal" type="number" min="1"></div>
+          <div><label for="aFare">Full fare (₹)</label><input id="aFare" type="number" min="0"></div>
+        </div>
+        <p style="margin:12px 0 0"><button class="btn" id="addBtn">Add Bus</button> <button class="btn sec" id="logoutBtn">Logout</button> <button class="btn sec" id="resetBtn">Reset all data</button></p>
+        <div class="msg" id="addMsg"></div>
+      </div>
+      <div class="card tbl">
+        <h3 style="margin-top:0">All Buses</h3>
+        <input id="aFilter" placeholder="Filter by bus or place..." style="margin-bottom:10px">
+        <table><thead><tr><th>Bus</th><th>Route</th><th>Start</th><th></th></tr></thead><tbody id="adminRows"></tbody></table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>Bus Timing Info · College Project · Timings and fares are sample values</footer>
+
+<script>
+// ---- ROUTE DATA ----
+// Each line: operator, stops with minutes from the first stop, and departure times from the first stop.
+// The return trip is created automatically (reverse stops, departures 20 minutes later).
+// Edit stops / times here with real values from the bus stand.
+// Phagwara -> Mahilpur with all inner stops (minutes from Phagwara). Edit names / minutes if needed.
+const MP = [["Phagwara",0],["Phagwara Bypass",4],["Behram",10],["Farala",15],["Bhroli",19],["Sandhwan",23],["Soondh",27],["Katariyan",31],["Kotla",35],["Kot Fatuhi",39],["Thoana",43],["Kharodi",47],["Paldi",51],["Bharta",55],["Scrooli",59],["Pathrala",63],["Nagal",67],["Mahilpur",72]];
+const LINES = [
+ {op:"PRTC",stops:MP,times:["06:00","07:30","09:00","11:00","13:30","15:30","17:30"]},
+ {op:"Punbus",stops:MP.concat([["Garhshankar",100]]),times:["06:30","08:00","10:00","12:30","15:00","17:00"]},
+ {op:"PRTC",stops:[["Phagwara",0],["Banga",25],["Nawanshahr",50]],times:["05:45","07:00","08:30","10:30","12:30","14:30","16:30","18:30"]},
+ {op:"Punbus",stops:[["Phagwara",0],["Banga",25],["Nawanshahr",50],["Balachaur",75],["Ropar",115],["Kharar",150],["Chandigarh",175]],times:["05:30","07:30","09:30","12:00","14:30","17:00"]},
+ {op:"PRTC",stops:[["Phagwara",0],["Hadiabad",20],["Mehtiana",40],["Hoshiarpur",65]],times:["06:15","08:00","10:00","12:00","14:00","16:00","18:00"]},
+ {op:"PRTC",stops:[["Phagwara",0],["Lovely Professional University",10],["Jalandhar",40]],times:["05:30","06:15","07:00","08:00","09:00","10:30","12:00","13:30","15:00","16:30","18:00","19:30"]},
+ {op:"Punbus",stops:[["Phagwara",0],["Phillaur",25],["Nurmahal",50],["Nakodar",70]],times:["06:00","08:30","11:00","13:30","16:00","18:00"]},
+ {op:"Punbus",stops:[["Jalandhar",0],["Lovely Professional University",30]].concat(MP.map(s => [s[0], s[1] + 40])),times:["06:00","08:00","10:30","13:00","15:30","17:30"]},
+ {op:"PRTC",stops:[["Phagwara",0],["Goraya",15],["Phillaur",30],["Ladhowal",45],["Ludhiana",75]],times:["05:30","07:00","08:30","10:00","12:00","14:00","16:00","18:00"]},
+ {op:"Punbus",stops:[["Ludhiana",0],["Ladhowal",30],["Phillaur",45],["Goraya",60],["Phagwara",75],["Lovely Professional University",85],["Jalandhar",115]],times:["05:00","07:00","09:00","11:30","14:00","16:30","18:30"]},
+ {op:"PRTC",stops:[["Hoshiarpur",0],["Mahilpur",30],["Banga",55],["Nawanshahr",80]],times:["06:30","09:00","11:30","14:00","16:30"]},
+ {op:"Punbus",stops:[["Hoshiarpur",0],["Mahilpur",30],["Garhshankar",55],["Balachaur",75],["Ropar",115],["Kharar",150],["Chandigarh",175]],times:["05:45","07:45","10:00","13:00","15:30"]},
+ {op:"PRTC",stops:[["Jalandhar",0],["Adampur",25],["Hoshiarpur",60]],times:["06:00","08:00","10:00","12:00","14:00","16:00","18:00"]},
+ {op:"Punbus",stops:[["Phagwara",0],["Jalandhar",40],["Kartarpur",55],["Beas",85],["Amritsar",125]],times:["06:00","08:30","11:00","14:00","17:00"]},
+ {op:"PRTC",stops:[["Phagwara",0],["Banga",25],["Nawanshahr",50],["Rahon",65],["Garhshankar",90]],times:["06:00","08:30","11:00","13:30","16:00"]},
+ {op:"PRTC",stops:[["Garhshankar",0],["Saroya",20],["Nawanshahr",45]],times:["06:15","08:45","11:15","14:00","16:45"]},
+ {op:"PRTC",stops:[["Jalandhar",0],["Lovely Professional University",30],["Phagwara",40],["Banga",65],["Nawanshahr",90]],times:["06:30","09:00","12:00","15:00","17:30"]},
+ {op:"PRTC",stops:[["Mahilpur",0],["Hoshiarpur",30]],times:["06:00","07:30","09:00","10:30","12:00","14:00","16:00","18:00"]},
+ {op:"PRTC",stops:[["Mahilpur",0],["Garhshankar",25]],times:["06:30","08:30","10:30","12:30","14:30","16:30","18:30"]}
+];
+
+// ---- BUS OPERATORS ----
+// m: 0 = runs only routes WITHOUT Mahilpur, 1 = runs only routes WITH Mahilpur, 2 = runs all routes
+// Govt = roadways, Private = private bus. Every route gets both roadways and private buses.
+const OPS = [
+  {n:"Sidhu Bus",t:"Private",m:0},
+  {n:"Kalgidhar Bus",t:"Private",m:0},
+  {n:"Dhariwal Bus",t:"Private",m:2},
+  {n:"Express",t:"Private",m:1},
+  {n:"PRTC",t:"Govt",m:2},
+  {n:"Punjab Roadways",t:"Govt",m:2}
+];
+const OPT_HTML = '<option value="">All buses</option><option value="T:Govt">Roadways (Govt)</option><option value="T:Private">All private buses</option>' + OPS.map(o => '<option value="O:' + o.n + '">' + o.n + '</option>').join("");
+function okOp(b){ const v = $("op").value; if(!v) return true; return v[0] === "T" ? b.type === v.slice(2) : b.op === v.slice(2); }
+
+const KEY = "bt_buses_v4";
+let buses = load();
+let lastView = "home";
+
+function toMin(t){ const p = t.split(":").map(Number); return p[0]*60 + p[1]; }
+function fmt(m){ m = ((m % 1440) + 1440) % 1440; let h = Math.floor(m/60); const mm = m % 60; const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + String(mm).padStart(2,"0") + " " + ap; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function $(id){ return document.getElementById(id); }
+
+function defaults(){
+  const out = []; let id = 1;
+  function add(o, start, stops, fare){
+    out.push({id:id, name:o.n + " " + (100 + id), op:o.n, type:o.t, start:start, fare:fare, stops:stops.map(s => ({n:s[0], t:s[1]}))});
+    id++;
+  }
+  LINES.forEach(l => {
+    const total = l.stops[l.stops.length-1][1];
+    const viaM = l.stops.some(s => s[0] === "Mahilpur");
+    const rev = l.stops.slice().reverse().map(s => [s[0], total - s[1]]);
+    OPS.forEach((o, oi) => {
+      if((o.m === 0 && viaM) || (o.m === 1 && !viaM)) return;
+      const fare = Math.max(20, Math.round(total * (o.t === "Govt" ? 0.9 : 1.1) / 5) * 5);
+      const shift = oi * 9;
+      l.times.forEach(t => add(o, toMin(t) + shift, l.stops, fare));
+      l.times.forEach(t => add(o, toMin(t) + shift + 20, rev, fare));
+    });
+  });
+  return out;
+}
+function load(){
+  try{ const s = localStorage.getItem(KEY); if(s){ const a = JSON.parse(s); if(Array.isArray(a) && a.length) return a; } }catch(e){}
+  return defaults();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(buses)); }catch(e){} }
+
+function places(){ const set = new Set(); buses.forEach(b => b.stops.forEach(s => set.add(s.n))); return [...set].sort(); }
+function fillSelects(){
+  const p = places();
+  const opt = '<option value="">Any</option>' + p.map(x => '<option>' + esc(x) + '</option>').join("");
+  const f = $("from").value, t = $("to").value;
+  $("from").innerHTML = opt; $("to").innerHTML = opt;
+  const ov = $("op").value; $("op").innerHTML = OPT_HTML; $("op").value = ov;
+  $("from").value = f; $("to").value = t;
+}
+
+function show(v){
+  ["home","routes","details","admin"].forEach(id => $(id).classList.toggle("hide", id !== v));
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  if(v !== "details") lastView = v;
+  window.scrollTo(0,0);
+}
+
+// does this bus go from -> to ? returns stop indexes or null
+function seg(b, from, to){
+  const names = b.stops.map(s => s.n);
+  const i = from ? names.indexOf(from) : 0;
+  const j = to ? names.indexOf(to) : names.length - 1;
+  if(i < 0 || j < 0 || i >= j) return null;
+  return {i:i, j:j};
+}
+
+function search(){
+  const f = $("from").value, t = $("to").value;
+  let list = [];
+  buses.forEach(b => { const s = okOp(b) ? seg(b, f, t) : null; if(s) list.push({b:b, i:s.i, j:s.j, dep:b.start + b.stops[s.i].t, arr:b.start + b.stops[s.j].t}); });
+  list.sort((a,b) => (a.dep % 1440) - (b.dep % 1440));
+  if(!list.length){ $("results").innerHTML = '<div class="card muted">No bus found for this route.</div>'; return; }
+  const now = new Date(); const nowMin = now.getHours()*60 + now.getMinutes();
+  const next = list.find(x => (x.dep % 1440) >= nowMin);
+  let note = "";
+  if(!f && !t && list.length > 40){ note = '<p class="muted">Showing first 40 buses. Select From / To to narrow down.</p>'; list = list.slice(0,40); }
+  $("results").innerHTML = '<p class="muted">' + list.length + ' bus(es) found</p>' + note + list.map(x => {
+    const b = x.b, first = b.stops[0].n, last = b.stops[b.stops.length-1].n;
+    const total = b.stops[b.stops.length-1].t || 1;
+    const fare = Math.max(10, Math.round(b.fare * (b.stops[x.j].t - b.stops[x.i].t) / total / 5) * 5);
+    const via = b.stops.slice(x.i + 1, x.j).map(s => s.n);
+    return '<div class="card bus"><div><h3>' + esc(b.name) + '<span class="badge tp ' + (b.type === "Govt" ? "g" : "p") + '">' + esc(b.type || "Private") + '</span>' + (next && next.b.id === b.id && next.i === x.i ? '<span class="badge">Next bus</span>' : '') + '</h3>' +
+      '<div class="muted">' + esc(b.stops[x.i].n) + ' → ' + esc(b.stops[x.j].n) + ' · ₹' + fare + '</div>' +
+      '<div class="muted">' + (via.length ? 'via ' + esc(via.join(", ")) + ' · ' : '') + 'Bus runs ' + esc(first) + ' → ' + esc(last) + '</div></div>' +
+      '<div><div class="time">' + fmt(x.dep) + '</div><div class="muted">Arrives ' + fmt(x.arr) + '</div></div>' +
+      '<button class="btn sec" data-d="' + b.id + '">Details</button></div>';
+  }).join("");
+}
+
+function routes(){
+  const map = {};
+  buses.forEach(b => { const k = b.stops[0].n + "|" + b.stops[b.stops.length-1].n; (map[k] = map[k] || []).push(b); });
+  $("routeList").innerHTML = Object.keys(map).sort().map(k => {
+    const parts = k.split("|"); const arr = map[k]; const st = arr[0].stops;
+    const via = st.slice(1, -1).map(s => s.n).join(", ");
+    return '<div class="card bus"><div><h3>' + esc(parts[0]) + ' → ' + esc(parts[1]) + '</h3>' +
+      '<div class="muted">' + arr.length + ' bus' + (arr.length > 1 ? 'es' : '') + ' daily' + (via ? ' · via ' + esc(via) : '') + '</div></div>' +
+      '<button class="btn" data-r="' + esc(k) + '">View buses</button></div>';
+  }).join("");
+}
+
+function details(id){
+  const b = buses.find(x => x.id === id); if(!b) return;
+  const last = b.stops[b.stops.length-1];
+  $("detailBox").innerHTML = '<h3 style="margin-top:0">' + esc(b.name) + '</h3>' +
+    '<p class="muted">' + esc(b.stops[0].n) + ' → ' + esc(last.n) + ' · Full fare ₹' + esc(b.fare) + '</p>' +
+    '<b>Stops and timing</b><ul class="stops">' +
+    b.stops.map(s => '<li><span>' + esc(s.n) + '</span><span class="muted">' + fmt(b.start + s.t) + '</span></li>').join("") + '</ul>';
+  show("details");
+}
+
+function adminRows(){
+  const q = $("aFilter").value.trim().toLowerCase();
+  const rows = buses.filter(b => !q || (b.name + " " + b.stops.map(s => s.n).join(" ")).toLowerCase().includes(q)).slice(0,100);
+  $("adminRows").innerHTML = rows.map(b =>
+    '<tr><td>' + esc(b.name) + '</td><td>' + esc(b.stops[0].n) + ' → ' + esc(b.stops[b.stops.length-1].n) + '</td><td>' + fmt(b.start) + '</td>' +
+    '<td><button class="btn del" data-x="' + b.id + '">Delete</button></td></tr>').join("");
+}
+function refresh(){ fillSelects(); search(); routes(); adminRows(); }
+
+// ---- events ----
+$("nav").addEventListener("click", e => { if(e.target.dataset.v) show(e.target.dataset.v); });
+$("searchBtn").addEventListener("click", search);
+$("from").addEventListener("change", search);
+$("to").addEventListener("change", search);
+$("op").addEventListener("change", search);
+$("swapBtn").addEventListener("click", () => { const f = $("from").value; $("from").value = $("to").value; $("to").value = f; search(); });
+$("backBtn").addEventListener("click", () => show(lastView));
+$("results").addEventListener("click", e => { if(e.target.dataset.d) details(Number(e.target.dataset.d)); });
+$("routeList").addEventListener("click", e => {
+  if(e.target.dataset.r){ const p = e.target.dataset.r.split("|"); $("from").value = p[0]; $("to").value = p[1]; search(); show("home"); }
+});
+$("loginBtn").addEventListener("click", () => {
+  if($("user").value === "admin" && $("pass").value === "1234"){
+    $("loginBox").classList.add("hide"); $("panel").classList.remove("hide"); $("loginMsg").textContent = "";
+  } else { $("loginMsg").textContent = "Wrong username or password."; }
+});
+$("logoutBtn").addEventListener("click", () => {
+  $("panel").classList.add("hide"); $("loginBox").classList.remove("hide"); $("user").value = ""; $("pass").value = "";
+});
+$("addBtn").addEventListener("click", () => {
+  const name = $("aName").value.trim(), dep = $("aDep").value, total = Number($("aTotal").value), fare = $("aFare").value;
+  const names = $("aStops").value.split(",").map(s => s.trim()).filter(Boolean);
+  if(!name || !dep || !total || fare === "" || names.length < 2){ $("addMsg").textContent = "Please fill all fields (at least 2 stops)."; return; }
+  const stops = names.map((n, i) => ({n:n, t:Math.round(i * total / (names.length - 1))}));
+  const id = buses.reduce((m,b) => Math.max(m, b.id), 0) + 1;
+  buses.push({id:id, name:name, op:name, type:"Private", start:toMin(dep), fare:Number(fare), stops:stops});
+  save(); refresh();
+  ["aName","aDep","aStops","aTotal","aFare"].forEach(i => $(i).value = "");
+  $("addMsg").textContent = "";
+});
+$("adminRows").addEventListener("click", e => {
+  if(e.target.dataset.x){ buses = buses.filter(b => b.id !== Number(e.target.dataset.x)); save(); refresh(); }
+});
+$("aFilter").addEventListener("input", adminRows);
+$("resetBtn").addEventListener("click", () => {
+  if(confirm("Reset all buses to the default list?")){ try{ localStorage.removeItem(KEY); }catch(e){} buses = defaults(); refresh(); }
+});
+
+refresh();
+</script>
+</body>
+</html>
